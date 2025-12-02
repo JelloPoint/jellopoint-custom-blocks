@@ -54,9 +54,9 @@ class Custom_Block extends Widget_Base {
 	}
 
 	/**
-	 * Beschrijving (optioneel).
+	 * Keywords.
 	 *
-	 * @return string
+	 * @return array
 	 */
 	public function get_keywords() {
 		return [ 'jellopoint', 'custom', 'block', 'tekst', 'standaard', 'content' ];
@@ -74,8 +74,6 @@ class Custom_Block extends Widget_Base {
 			]
 		);
 
-		// CPT slug – nu hard op 'standaard_teksten'.
-		// Als je later flexibeler wilt zijn, kun je hier een select van CPT's maken.
 		$this->add_control(
 			'post_id',
 			[
@@ -274,11 +272,14 @@ class Custom_Block extends Widget_Base {
 		$show_title   = ( isset( $settings['show_title'] ) && 'yes' === $settings['show_title'] );
 		$show_content = ( isset( $settings['show_content'] ) && 'yes' === $settings['show_content'] );
 
-		$title   = get_the_title( $post );
-		$content = get_post_field( 'post_content', $post );
+		$title        = get_the_title( $post_id );
+		$raw_content  = get_post_field( 'post_content', $post_id );
+		$content_html = '';
 
-		// Gebruik the_content filters zodat opmaak, shortcodes en embeds werken.
-		$content = apply_filters( 'the_content', $content );
+		if ( $raw_content ) {
+			// Geen the_content filters – alleen shortcodes + automatische paragrafen.
+			$content_html = wpautop( do_shortcode( $raw_content ) );
+		}
 		?>
 		<div class="jp-block">
 			<?php if ( $show_title && $title ) : ?>
@@ -287,11 +288,11 @@ class Custom_Block extends Widget_Base {
 				</div>
 			<?php endif; ?>
 
-			<?php if ( $show_content && $content ) : ?>
+			<?php if ( $show_content && $content_html ) : ?>
 				<div class="jp-block__content">
 					<?php
 					// Content mag HTML bevatten (paragrafen, links, lijstjes).
-					echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					echo $content_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					?>
 				</div>
 			<?php endif; ?>
