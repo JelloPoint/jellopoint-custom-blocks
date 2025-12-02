@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * JelloPoint Custom Block widget.
  *
  * Toont de titel + content van een gekozen post uit beschikbare custom post types
- * (standaard_teksten e.d.), met optionele ACF-tagline en volledige styling-controls.
+ * (bijv. standaard_teksten), met optionele ACF-tagline en volledige styling-controls.
  */
 class Custom_Block extends Widget_Base {
 
@@ -82,10 +82,10 @@ class Custom_Block extends Widget_Base {
 			[
 				'label'       => __( 'Post', 'jellopoint-custom-blocks' ),
 				'type'        => Controls_Manager::SELECT2,
-				'options'     => $this->get_post_options_all_cpts(),
+				'options'     => $this->get_post_options_acf_cpts(),
 				'multiple'    => false,
 				'label_block' => true,
-				'description' => __( 'Kies welke post je in dit blok wilt tonen (uit alle beschikbare custom post types).', 'jellopoint-custom-blocks' ),
+				'description' => __( 'Kies welke post je in dit blok wilt tonen (uit ACF-compatibele custom post types).', 'jellopoint-custom-blocks' ),
 			]
 		);
 
@@ -191,7 +191,8 @@ class Custom_Block extends Widget_Base {
 			[
 				'name'     => 'title_typography',
 				'label'    => __( 'Typografie', 'jellopoint-custom-blocks' ),
-				'selector' => '{{WRAPPER}} .jp-block__title',
+				// Neem ook eventuele nested spans etc. mee:
+				'selector' => '{{WRAPPER}} .jp-block__title, {{WRAPPER}} .jp-block__title *',
 			]
 		);
 
@@ -239,7 +240,7 @@ class Custom_Block extends Widget_Base {
 			[
 				'name'     => 'tagline_typography',
 				'label'    => __( 'Typografie', 'jellopoint-custom-blocks' ),
-				'selector' => '{{WRAPPER}} .jp-block__tagline',
+				'selector' => '{{WRAPPER}} .jp-block__tagline, {{WRAPPER}} .jp-block__tagline *',
 			]
 		);
 
@@ -287,7 +288,7 @@ class Custom_Block extends Widget_Base {
 			[
 				'name'     => 'content_typography',
 				'label'    => __( 'Typografie', 'jellopoint-custom-blocks' ),
-				'selector' => '{{WRAPPER}} .jp-block__content',
+				'selector' => '{{WRAPPER}} .jp-block__content, {{WRAPPER}} .jp-block__content *',
 			]
 		);
 
@@ -307,14 +308,14 @@ class Custom_Block extends Widget_Base {
 	}
 
 	/**
-	 * Bouw een lijst met posts uit alle relevante custom post types.
+	 * Lijst met posts uit ACF-gerelateerde custom post types.
 	 *
 	 * @return array
 	 */
-	protected function get_post_options_all_cpts() {
+	protected function get_post_options_acf_cpts() {
 		$options = [];
 
-		// Haal alle publieke, niet-builtin CPT's op (zoals standaard_teksten).
+		// Eerst alle publieke, niet-builtin CPT's ophalen.
 		$post_types = get_post_types(
 			[
 				'public'   => true,
@@ -323,6 +324,24 @@ class Custom_Block extends Widget_Base {
 			],
 			'objects'
 		);
+
+		if ( empty( $post_types ) ) {
+			return $options;
+		}
+
+		// Als ACF aanwezig is, beperken tot ACF-compatibele post types.
+		if ( function_exists( 'acf_get_post_types' ) ) {
+			$acf_types = acf_get_post_types(
+				[
+					// Standaard post/page/attachment uitsluiten.
+					'exclude' => [ 'post', 'page', 'attachment' ],
+				]
+			);
+
+			if ( ! empty( $acf_types ) ) {
+				$post_types = array_intersect_key( $post_types, array_flip( $acf_types ) );
+			}
+		}
 
 		if ( empty( $post_types ) ) {
 			return $options;
@@ -421,7 +440,7 @@ class Custom_Block extends Widget_Base {
 			<?php endif; ?>
 
 			<?php if ( $show_title && $title ) : ?>
-				<div class="jp-block__title">
+				<div class="jp-block__title elementor-heading-title">
 					<?php echo esc_html( $title ); ?>
 				</div>
 			<?php endif; ?>
