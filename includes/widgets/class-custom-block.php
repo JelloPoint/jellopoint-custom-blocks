@@ -17,54 +17,26 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Custom_Block extends Widget_Base {
 
-	/**
-	 * Widget slug.
-	 *
-	 * @return string
-	 */
 	public function get_name() {
 		return 'jellopoint_custom_block';
 	}
 
-	/**
-	 * Widget titel in Elementor.
-	 *
-	 * @return string
-	 */
 	public function get_title() {
 		return __( 'JelloPoint Custom Block', 'jellopoint-custom-blocks' );
 	}
 
-	/**
-	 * Widget icoon.
-	 *
-	 * @return string
-	 */
 	public function get_icon() {
 		return 'eicon-text';
 	}
 
-	/**
-	 * Categorie.
-	 *
-	 * @return array
-	 */
 	public function get_categories() {
 		return [ 'jellopoint-widgets' ];
 	}
 
-	/**
-	 * Keywords.
-	 *
-	 * @return array
-	 */
 	public function get_keywords() {
 		return [ 'jellopoint', 'custom', 'block', 'tekst', 'standaard', 'content', 'cpt' ];
 	}
 
-	/**
-	 * Registreer controls.
-	 */
 	protected function _register_controls() { // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore
 		/**
 		 * BRON
@@ -308,7 +280,8 @@ class Custom_Block extends Widget_Base {
 	}
 
 	/**
-	 * Lijst met posts uit ACF-gerelateerde custom post types.
+	 * Lijst met posts uit ACF-gerelateerde custom post types,
+	 * waarbij bekende "systeem-CPT's" (zoals Elementor Templates) uitgesloten worden.
 	 *
 	 * @return array
 	 */
@@ -329,17 +302,32 @@ class Custom_Block extends Widget_Base {
 			return $options;
 		}
 
+		// Bekende "systeem" CPT's die we NIET willen tonen.
+		$exclude_slugs = [
+			'elementor_library', // Elementor Templates
+			'elementor_snippet',
+			'wp_block',
+			'wp_template',
+			'wp_template_part',
+		];
+
 		// Als ACF aanwezig is, beperken tot ACF-compatibele post types.
 		if ( function_exists( 'acf_get_post_types' ) ) {
 			$acf_types = acf_get_post_types(
 				[
-					// Standaard post/page/attachment uitsluiten.
 					'exclude' => [ 'post', 'page', 'attachment' ],
 				]
 			);
 
 			if ( ! empty( $acf_types ) ) {
 				$post_types = array_intersect_key( $post_types, array_flip( $acf_types ) );
+			}
+		}
+
+		// Extra: uitgesloten CPT's verwijderen (zoals Templates).
+		foreach ( $exclude_slugs as $slug ) {
+			if ( isset( $post_types[ $slug ] ) ) {
+				unset( $post_types[ $slug ] );
 			}
 		}
 
