@@ -782,22 +782,12 @@ class Custom_Block extends Widget_Base {
 			$button_html .= '</div>';
 		}
 
-		// Tagline helper.
-		$render_tagline = function () use ( $tagline_html ) {
-			if ( ! $tagline_html ) {
-				return;
-			}
-			echo '<div class="jp-block__tagline">';
-			echo $tagline_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo '</div>';
-		};
-
-		// Body (tagline/title/content/button) als herbruikbare routine.
-		$render_body = function () use ( $show_title, $title, $tagline_pos, $render_tagline, $show_content, $content_html, $button_html ) {
-			echo '<div class="jp-block__body">';
-
-			if ( 'above_title' === $tagline_pos ) {
-				$render_tagline();
+		// Inner body (zonder wrapper) als herbruikbare routine.
+		$render_body_inner = function () use ( $show_title, $title, $tagline_pos, $tagline_html, $show_content, $content_html, $button_html ) {
+			if ( 'above_title' === $tagline_pos && $tagline_html ) {
+				echo '<div class="jp-block__tagline">';
+				echo $tagline_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo '</div>';
 			}
 
 			if ( $show_title && $title ) {
@@ -806,8 +796,10 @@ class Custom_Block extends Widget_Base {
 				echo '</div>';
 			}
 
-			if ( 'below_title' === $tagline_pos ) {
-				$render_tagline();
+			if ( 'below_title' === $tagline_pos && $tagline_html ) {
+				echo '<div class="jp-block__tagline">';
+				echo $tagline_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo '</div>';
 			}
 
 			if ( $show_content && $content_html ) {
@@ -819,8 +811,6 @@ class Custom_Block extends Widget_Base {
 			if ( $button_html ) {
 				echo $button_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
-
-			echo '</div>'; // .jp-block__body
 		};
 
 		// Bepaal of we side-by-side layout (links/rechts) hebben.
@@ -833,7 +823,7 @@ class Custom_Block extends Widget_Base {
 
 		$wrapper_style = '';
 		if ( $has_side_image ) {
-			// Maak de buitenste wrapper een flex container.
+			// Flex voor de hele block-wrapper.
 			$wrapper_style = 'display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;';
 		}
 
@@ -843,32 +833,38 @@ class Custom_Block extends Widget_Base {
 		}
 		echo '>';
 
-		// LINKS/RECHTS layout.
 		if ( $has_side_image ) {
+			// LINKS / RECHTS LAYOUT
 			if ( 'left' === $image_pos ) {
 				if ( $image_html ) {
-					echo '<div class="jp-block__media">';
+					echo '<div class="jp-block__media" style="flex:0 0 auto;">';
 					echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					echo '</div>';
 				}
-				$render_body();
+				echo '<div class="jp-block__body" style="flex:1 1 0;">';
+				$render_body_inner();
+				echo '</div>';
 			} else { // right
-				$render_body();
+				echo '<div class="jp-block__body" style="flex:1 1 0;">';
+				$render_body_inner();
+				echo '</div>';
 				if ( $image_html ) {
-					echo '<div class="jp-block__media">';
+					echo '<div class="jp-block__media" style="flex:0 0 auto;">';
 					echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					echo '</div>';
 				}
 			}
 		} else {
-			// TOP/BOTTOM layout.
+			// TOP / BOTTOM LAYOUT
 			if ( $image_html && 'top' === $image_pos ) {
 				echo '<div class="jp-block__media">';
 				echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo '</div>';
 			}
 
-			$render_body();
+			echo '<div class="jp-block__body">';
+			$render_body_inner();
+			echo '</div>';
 
 			if ( $image_html && 'bottom' === $image_pos ) {
 				echo '<div class="jp-block__media">';
