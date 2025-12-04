@@ -404,7 +404,8 @@ class Custom_Block extends Widget_Base {
 					],
 				],
 				'selectors'  => [
-					'{{WRAPPER}} .jp-block__media img' => 'width: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .jp-block__media'     => 'flex: 0 0 {{SIZE}}{{UNIT}}; max-width: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .jp-block__media img' => 'width: 100%; height: auto;',
 				],
 			]
 		);
@@ -426,7 +427,7 @@ class Custom_Block extends Widget_Base {
 					],
 				],
 				'selectors'  => [
-					'{{WRAPPER}} .jp-block__media img' => 'max-width: {{SIZE}}{{UNIT}};',
+					'{{WRAPPER}} .jp-block__media' => 'max-width: {{SIZE}}{{UNIT}};',
 				],
 			]
 		);
@@ -549,7 +550,7 @@ class Custom_Block extends Widget_Base {
 		$this->add_responsive_control(
 			'button_padding',
 			[
-				'label'      => __( 'Padding', 'jellopoint-custom-blocks' ),
+				'label'      => __( 'Padding (binnen de knop)', 'jellopoint-custom-blocks' ),
 				'type'       => Controls_Manager::DIMENSIONS,
 				'size_units' => [ 'px', 'em' ],
 				'selectors'  => [
@@ -592,6 +593,30 @@ class Custom_Block extends Widget_Base {
 				'default'   => 'flex-start',
 				'selectors' => [
 					'{{WRAPPER}} .jp-block__button-wrap' => 'justify-content: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'button_wrapper_padding',
+			[
+				'label'      => __( 'Button wrapper padding', 'jellopoint-custom-blocks' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', 'em', '%' ],
+				'selectors'  => [
+					'{{WRAPPER}} .jp-block__button-wrap' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'button_wrapper_margin',
+			[
+				'label'      => __( 'Button wrapper margin', 'jellopoint-custom-blocks' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', 'em', '%' ],
+				'selectors'  => [
+					'{{WRAPPER}} .jp-block__button-wrap' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
 				],
 			]
 		);
@@ -845,15 +870,14 @@ class Custom_Block extends Widget_Base {
 		}
 
 		if ( $has_side_image ) {
-			// LINKS / RECHTS LAYOUT
-			// Markup altijd: media dan body → flex-direction regelt of image links/rechts staat.
+			// LINKS / RECHTS LAYOUT – markup altijd: media dan body.
 			if ( $image_html ) {
-				echo '<div class="jp-block__media" style="flex:0 0 auto;">';
+				echo '<div class="jp-block__media">';
 				echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo '</div>';
 			}
 
-			echo '<div class="jp-block__body" style="flex:1 1 0;">';
+			echo '<div class="jp-block__body">';
 			$render_body_inner();
 			echo '</div>';
 		} else {
