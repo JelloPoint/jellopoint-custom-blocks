@@ -821,39 +821,41 @@ class Custom_Block extends Widget_Base {
 			'jp-block--image-' . $image_pos,
 		];
 
+		$wrapper_id = 'jp-block-' . $this->get_id();
+
 		$wrapper_style = '';
 		if ( $has_side_image ) {
-			// Flex voor de hele block-wrapper.
-			$wrapper_style = 'display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;';
+			// Flex layout met richting per positie.
+			$direction     = ( 'right' === $image_pos ) ? 'row-reverse' : 'row';
+			$wrapper_style = 'display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;flex-direction:' . $direction . ';';
 		}
 
-		echo '<div class="' . esc_attr( implode( ' ', $wrapper_classes ) ) . '"';
+		// Wrapper openen.
+		echo '<div id="' . esc_attr( $wrapper_id ) . '" class="' . esc_attr( implode( ' ', $wrapper_classes ) ) . '"';
 		if ( $wrapper_style ) {
 			echo ' style="' . esc_attr( $wrapper_style ) . '"';
 		}
 		echo '>';
 
+		// Mobiele override: bij side-image altijd stacken (afbeelding boven tekst).
+		if ( $has_side_image ) {
+			echo '<style>';
+			echo '@media (max-width: 767px){#' . esc_attr( $wrapper_id ) . '{flex-direction:column;}}';
+			echo '</style>';
+		}
+
 		if ( $has_side_image ) {
 			// LINKS / RECHTS LAYOUT
-			if ( 'left' === $image_pos ) {
-				if ( $image_html ) {
-					echo '<div class="jp-block__media" style="flex:0 0 auto;">';
-					echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					echo '</div>';
-				}
-				echo '<div class="jp-block__body" style="flex:1 1 0;">';
-				$render_body_inner();
+			// Markup altijd: media dan body → flex-direction regelt of image links/rechts staat.
+			if ( $image_html ) {
+				echo '<div class="jp-block__media" style="flex:0 0 auto;">';
+				echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo '</div>';
-			} else { // right
-				echo '<div class="jp-block__body" style="flex:1 1 0;">';
-				$render_body_inner();
-				echo '</div>';
-				if ( $image_html ) {
-					echo '<div class="jp-block__media" style="flex:0 0 auto;">';
-					echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					echo '</div>';
-				}
 			}
+
+			echo '<div class="jp-block__body" style="flex:1 1 0;">';
+			$render_body_inner();
+			echo '</div>';
 		} else {
 			// TOP / BOTTOM LAYOUT
 			if ( $image_html && 'top' === $image_pos ) {
