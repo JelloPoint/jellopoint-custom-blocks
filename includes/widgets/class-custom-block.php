@@ -3,6 +3,7 @@ namespace JelloPoint\CustomBlocks\Widgets;
 
 use Elementor\Controls_Manager;
 use Elementor\Group_Control_Typography;
+use Elementor\Group_Control_Image_Size;
 use Elementor\Widget_Base;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,7 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * JelloPoint Custom Block widget.
  *
  * Toont de titel + content van een gekozen post uit beschikbare custom post types
- * (bijv. standaard_teksten), met optionele ACF-tagline en volledige styling-controls.
+ * (bijv. standaard_teksten), met optionele ACF-tagline, featured image en button,
+ * en volledige styling-controls.
  */
 class Custom_Block extends Widget_Base {
 
@@ -34,7 +36,7 @@ class Custom_Block extends Widget_Base {
 	}
 
 	public function get_keywords() {
-		return [ 'jellopoint', 'custom', 'block', 'tekst', 'standaard', 'content', 'cpt' ];
+		return [ 'jellopoint', 'custom', 'block', 'tekst', 'standaard', 'content', 'cpt', 'image', 'button' ];
 	}
 
 	protected function _register_controls() { // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore
@@ -131,6 +133,100 @@ class Custom_Block extends Widget_Base {
 			]
 		);
 
+		/**
+		 * AFBEELDING (Featured Image)
+		 */
+		$this->add_control(
+			'show_image',
+			[
+				'label'        => __( 'Toon Afbeelding (Featured Image)', 'jellopoint-custom-blocks' ),
+				'type'         => Controls_Manager::SWITCHER,
+				'label_on'     => __( 'Ja', 'jellopoint-custom-blocks' ),
+				'label_off'    => __( 'Nee', 'jellopoint-custom-blocks' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'separator'    => 'before',
+			]
+		);
+
+		$this->add_control(
+			'image_position',
+			[
+				'label'     => __( 'Afbeelding positie', 'jellopoint-custom-blocks' ),
+				'type'      => Controls_Manager::SELECT,
+				'default'   => 'top',
+				'options'   => [
+					'top'    => __( 'Boven titel & tekst', 'jellopoint-custom-blocks' ),
+					'bottom' => __( 'Onder titel & tekst', 'jellopoint-custom-blocks' ),
+					'left'   => __( 'Links van titel & tekst', 'jellopoint-custom-blocks' ),
+					'right'  => __( 'Rechts van titel & tekst', 'jellopoint-custom-blocks' ),
+				],
+				'condition' => [
+					'show_image' => 'yes',
+				],
+			]
+		);
+
+		$this->add_group_control(
+			Group_Control_Image_Size::get_type(),
+			[
+				'name'      => 'image_size',
+				'default'   => 'medium',
+				'separator' => 'none',
+				'condition' => [
+					'show_image' => 'yes',
+				],
+			]
+		);
+
+		/**
+		 * BUTTON
+		 */
+		$this->add_control(
+			'show_button',
+			[
+				'label'        => __( 'Toon Button', 'jellopoint-custom-blocks' ),
+				'type'         => Controls_Manager::SWITCHER,
+				'label_on'     => __( 'Ja', 'jellopoint-custom-blocks' ),
+				'label_off'    => __( 'Nee', 'jellopoint-custom-blocks' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'separator'    => 'before',
+			]
+		);
+
+		$this->add_control(
+			'button_text',
+			[
+				'label'       => __( 'Button tekst', 'jellopoint-custom-blocks' ),
+				'type'        => Controls_Manager::TEXT,
+				'default'     => __( 'Lees meer', 'jellopoint-custom-blocks' ),
+				'placeholder' => __( 'Bijv. Lees meer', 'jellopoint-custom-blocks' ),
+				'condition'   => [
+					'show_button' => 'yes',
+				],
+			]
+		);
+
+		$this->add_control(
+			'button_url',
+			[
+				'label'         => __( 'Button URL', 'jellopoint-custom-blocks' ),
+				'type'          => Controls_Manager::URL,
+				'placeholder'   => __( 'https://voorbeeld.nl', 'jellopoint-custom-blocks' ),
+				'options'       => [ 'url', 'is_external', 'nofollow' ],
+				'default'       => [
+					'url'         => '',
+					'is_external' => false,
+					'nofollow'    => false,
+				],
+				'show_external' => true,
+				'condition'     => [
+					'show_button' => 'yes',
+				],
+			]
+		);
+
 		$this->end_controls_section();
 
 		/**
@@ -163,7 +259,6 @@ class Custom_Block extends Widget_Base {
 			[
 				'name'     => 'title_typography',
 				'label'    => __( 'Typografie', 'jellopoint-custom-blocks' ),
-				// Neem ook eventuele nested spans etc. mee:
 				'selector' => '{{WRAPPER}} .jp-block__title, {{WRAPPER}} .jp-block__title *',
 			]
 		);
@@ -277,6 +372,231 @@ class Custom_Block extends Widget_Base {
 		);
 
 		$this->end_controls_section();
+
+		/**
+		 * STYLING – Afbeelding
+		 */
+		$this->start_controls_section(
+			'section_style_image',
+			[
+				'label'     => __( 'Afbeelding', 'jellopoint-custom-blocks' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => [
+					'show_image' => 'yes',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'image_width',
+			[
+				'label'      => __( 'Breedte', 'jellopoint-custom-blocks' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => [ '%', 'px' ],
+				'range'      => [
+					'%'  => [
+						'min' => 10,
+						'max' => 100,
+					],
+					'px' => [
+						'min' => 50,
+						'max' => 800,
+					],
+				],
+				'selectors'  => [
+					'{{WRAPPER}} .jp-block__media img' => 'width: {{SIZE}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'image_max_width',
+			[
+				'label'      => __( 'Max-width', 'jellopoint-custom-blocks' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => [ '%', 'px' ],
+				'range'      => [
+					'%'  => [
+						'min' => 10,
+						'max' => 100,
+					],
+					'px' => [
+						'min' => 50,
+						'max' => 1000,
+					],
+				],
+				'selectors'  => [
+					'{{WRAPPER}} .jp-block__media img' => 'max-width: {{SIZE}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'image_margin',
+			[
+				'label'      => __( 'Margin', 'jellopoint-custom-blocks' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', 'em', '%' ],
+				'selectors'  => [
+					'{{WRAPPER}} .jp-block__media' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'image_border_radius',
+			[
+				'label'      => __( 'Border radius', 'jellopoint-custom-blocks' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', '%' ],
+				'selectors'  => [
+					'{{WRAPPER}} .jp-block__media img' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->end_controls_section();
+
+		/**
+		 * STYLING – Button
+		 */
+		$this->start_controls_section(
+			'section_style_button',
+			[
+				'label'     => __( 'Button', 'jellopoint-custom-blocks' ),
+				'tab'       => Controls_Manager::TAB_STYLE,
+				'condition' => [
+					'show_button' => 'yes',
+				],
+			]
+		);
+
+		$this->add_group_control(
+			Group_Control_Typography::get_type(),
+			[
+				'name'     => 'button_typography',
+				'label'    => __( 'Typografie', 'jellopoint-custom-blocks' ),
+				'selector' => '{{WRAPPER}} .jp-block__button',
+			]
+		);
+
+		$this->start_controls_tabs( 'button_style_tabs' );
+
+		$this->start_controls_tab(
+			'button_style_normal',
+			[
+				'label' => __( 'Normaal', 'jellopoint-custom-blocks' ),
+			]
+		);
+
+		$this->add_control(
+			'button_text_color',
+			[
+				'label'     => __( 'Tekstkleur', 'jellopoint-custom-blocks' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => [
+					'{{WRAPPER}} .jp-block__button' => 'color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->add_control(
+			'button_bg_color',
+			[
+				'label'     => __( 'Achtergrondkleur', 'jellopoint-custom-blocks' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => [
+					'{{WRAPPER}} .jp-block__button' => 'background-color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->end_controls_tab();
+
+		$this->start_controls_tab(
+			'button_style_hover',
+			[
+				'label' => __( 'Hover', 'jellopoint-custom-blocks' ),
+			]
+		);
+
+		$this->add_control(
+			'button_text_color_hover',
+			[
+				'label'     => __( 'Tekstkleur (hover)', 'jellopoint-custom-blocks' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => [
+					'{{WRAPPER}} .jp-block__button:hover' => 'color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->add_control(
+			'button_bg_color_hover',
+			[
+				'label'     => __( 'Achtergrondkleur (hover)', 'jellopoint-custom-blocks' ),
+				'type'      => Controls_Manager::COLOR,
+				'selectors' => [
+					'{{WRAPPER}} .jp-block__button:hover' => 'background-color: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->end_controls_tab();
+
+		$this->end_controls_tabs();
+
+		$this->add_responsive_control(
+			'button_padding',
+			[
+				'label'      => __( 'Padding', 'jellopoint-custom-blocks' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', 'em' ],
+				'selectors'  => [
+					'{{WRAPPER}} .jp-block__button' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'button_border_radius',
+			[
+				'label'      => __( 'Border radius', 'jellopoint-custom-blocks' ),
+				'type'       => Controls_Manager::DIMENSIONS,
+				'size_units' => [ 'px', '%' ],
+				'selectors'  => [
+					'{{WRAPPER}} .jp-block__button' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				],
+			]
+		);
+
+		$this->add_responsive_control(
+			'button_align',
+			[
+				'label'     => __( 'Uitlijning', 'jellopoint-custom-blocks' ),
+				'type'      => Controls_Manager::CHOOSE,
+				'options'   => [
+					'flex-start' => [
+						'title' => __( 'Links', 'jellopoint-custom-blocks' ),
+						'icon'  => 'eicon-text-align-left',
+					],
+					'center'     => [
+						'title' => __( 'Midden', 'jellopoint-custom-blocks' ),
+						'icon'  => 'eicon-text-align-center',
+					],
+					'flex-end'   => [
+						'title' => __( 'Rechts', 'jellopoint-custom-blocks' ),
+						'icon'  => 'eicon-text-align-right',
+					],
+				],
+				'default'   => 'flex-start',
+				'selectors' => [
+					'{{WRAPPER}} .jp-block__button-wrap' => 'justify-content: {{VALUE}};',
+				],
+			]
+		);
+
+		$this->end_controls_section();
 	}
 
 	/**
@@ -304,7 +624,7 @@ class Custom_Block extends Widget_Base {
 
 		// Bekende "systeem" CPT's die we NIET willen tonen.
 		$exclude_slugs = [
-			'elementor_library', // Elementor Templates
+			'elementor_library',
 			'elementor_snippet',
 			'wp_block',
 			'wp_template',
@@ -393,18 +713,26 @@ class Custom_Block extends Widget_Base {
 			return;
 		}
 
-		$show_title     = ( isset( $settings['show_title'] ) && 'yes' === $settings['show_title'] );
-		$show_content   = ( isset( $settings['show_content'] ) && 'yes' === $settings['show_content'] );
-		$show_tagline   = ( isset( $settings['show_tagline'] ) && 'yes' === $settings['show_tagline'] );
-		$tagline_field  = ! empty( $settings['tagline_field'] ) ? $settings['tagline_field'] : '';
-		$tagline_pos    = ! empty( $settings['tagline_position'] ) ? $settings['tagline_position'] : 'above_title';
+		$show_title   = ( isset( $settings['show_title'] ) && 'yes' === $settings['show_title'] );
+		$show_content = ( isset( $settings['show_content'] ) && 'yes' === $settings['show_content'] );
+		$show_tagline = ( isset( $settings['show_tagline'] ) && 'yes' === $settings['show_tagline'] );
+		$tagline_field = ! empty( $settings['tagline_field'] ) ? $settings['tagline_field'] : '';
+		$tagline_pos   = ! empty( $settings['tagline_position'] ) ? $settings['tagline_position'] : 'above_title';
+
+		$show_image    = ( isset( $settings['show_image'] ) && 'yes' === $settings['show_image'] );
+		$image_pos     = ! empty( $settings['image_position'] ) ? $settings['image_position'] : 'top';
+
+		$show_button   = ( isset( $settings['show_button'] ) && 'yes' === $settings['show_button'] );
+		$button_text   = ! empty( $settings['button_text'] ) ? $settings['button_text'] : '';
+		$button_url    = ! empty( $settings['button_url']['url'] ) ? $settings['button_url']['url'] : '';
+		$button_target = ! empty( $settings['button_url']['is_external'] ) ? '_blank' : '_self';
+		$button_rel    = ! empty( $settings['button_url']['nofollow'] ) ? 'nofollow' : '';
 
 		$title        = get_the_title( $post_id );
 		$raw_content  = get_post_field( 'post_content', $post_id );
 		$content_html = '';
 
 		if ( $raw_content ) {
-			// Geen the_content filters – alleen shortcodes + automatische paragrafen.
 			$content_html = wpautop( do_shortcode( $raw_content ) );
 		}
 
@@ -416,39 +744,120 @@ class Custom_Block extends Widget_Base {
 				$tagline_html = esc_html( $raw_tagline );
 			}
 		}
+
+		// Featured image.
+		$image_html = '';
+		if ( $show_image && has_post_thumbnail( $post_id ) ) {
+			$image_id = get_post_thumbnail_id( $post_id );
+			if ( $image_id ) {
+				$image_html = Group_Control_Image_Size::get_attachment_image_html( $settings, 'image_size', $image_id );
+			}
+		}
+
+		// Button HTML.
+		$button_html = '';
+		if ( $show_button && $button_text && $button_url ) {
+			$rel_parts = [];
+			if ( $button_rel ) {
+				$rel_parts[] = $button_rel;
+			}
+			if ( '_blank' === $button_target ) {
+				$rel_parts[] = 'noopener';
+				$rel_parts[] = 'noreferrer';
+			}
+			$rel_attr = '';
+			if ( ! empty( $rel_parts ) ) {
+				$rel_attr = implode( ' ', array_unique( $rel_parts ) );
+			}
+
+			$button_html  = '<div class="jp-block__button-wrap" style="display:flex;">';
+			$button_html .= sprintf(
+				'<a class="jp-block__button" href="%s"%s%s>%s</a>',
+				esc_url( $button_url ),
+				$button_target ? ' target="' . esc_attr( $button_target ) . '"' : '',
+				$rel_attr ? ' rel="' . esc_attr( $rel_attr ) . '"' : '',
+				esc_html( $button_text )
+			);
+			$button_html .= '</div>';
+		}
+
+		// Tagline helper.
+		$render_tagline = function () use ( $tagline_html ) {
+			if ( ! $tagline_html ) {
+				return;
+			}
+			echo '<div class="jp-block__tagline">';
+			echo $tagline_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '</div>';
+		};
+
+		// Body (tagline/title/content/button) als losse routine zodat we die in meerdere layouts kunnen gebruiken.
+		$render_body = function () use ( $show_title, $title, $tagline_pos, $render_tagline, $show_content, $content_html, $button_html ) {
+			echo '<div class="jp-block__body">';
+
+			if ( 'above_title' === $tagline_pos ) {
+				$render_tagline();
+			}
+
+			if ( $show_title && $title ) {
+				echo '<div class="jp-block__title elementor-heading-title">';
+				echo esc_html( $title );
+				echo '</div>';
+			}
+
+			if ( 'below_title' === $tagline_pos ) {
+				$render_tagline();
+			}
+
+			if ( $show_content && $content_html ) {
+				echo '<div class="jp-block__content">';
+				echo $content_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo '</div>';
+			}
+
+			if ( $button_html ) {
+				echo $button_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			}
+
+			echo '</div>'; // .jp-block__body
+		};
+
+		// Bepaal of we een side-by-side layout moeten gebruiken.
+		$has_side_image = ( $image_html && in_array( $image_pos, [ 'left', 'right' ], true ) );
 		?>
-		<div class="jp-block">
-			<?php
-			// Tagline boven titel.
-			if ( $tagline_html && 'above_title' === $tagline_pos ) :
-				?>
-				<div class="jp-block__tagline">
-					<?php echo $tagline_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		<div class="jp-block jp-block--image-<?php echo esc_attr( $image_pos ); ?>">
+			<?php if ( $has_side_image ) : ?>
+				<div class="jp-block__side-layout" style="display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;">
+					<?php if ( 'left' === $image_pos ) : ?>
+						<?php if ( $image_html ) : ?>
+							<div class="jp-block__media">
+								<?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+							</div>
+						<?php endif; ?>
+						<?php $render_body(); ?>
+					<?php else : // right ?>
+						<?php $render_body(); ?>
+						<?php if ( $image_html ) : ?>
+							<div class="jp-block__media">
+								<?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+							</div>
+						<?php endif; ?>
+					<?php endif; ?>
 				</div>
-			<?php endif; ?>
+			<?php else : ?>
+				<?php if ( $image_html && 'top' === $image_pos ) : ?>
+					<div class="jp-block__media">
+						<?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					</div>
+				<?php endif; ?>
 
-			<?php if ( $show_title && $title ) : ?>
-				<div class="jp-block__title elementor-heading-title">
-					<?php echo esc_html( $title ); ?>
-				</div>
-			<?php endif; ?>
+				<?php $render_body(); ?>
 
-			<?php
-			// Tagline onder titel.
-			if ( $tagline_html && 'below_title' === $tagline_pos ) :
-				?>
-				<div class="jp-block__tagline">
-					<?php echo $tagline_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-				</div>
-			<?php endif; ?>
-
-			<?php if ( $show_content && $content_html ) : ?>
-				<div class="jp-block__content">
-					<?php
-					// Content mag HTML bevatten (paragrafen, links, lijstjes).
-					echo $content_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					?>
-				</div>
+				<?php if ( $image_html && 'bottom' === $image_pos ) : ?>
+					<div class="jp-block__media">
+						<?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					</div>
+				<?php endif; ?>
 			<?php endif; ?>
 		</div>
 		<?php
