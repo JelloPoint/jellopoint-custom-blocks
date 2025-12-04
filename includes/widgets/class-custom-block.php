@@ -387,10 +387,11 @@ class Custom_Block extends Widget_Base {
 			]
 		);
 
+		// Breedte-­control zet een CSS variabele op de wrapper.
 		$this->add_responsive_control(
 			'image_width',
 			[
-				'label'      => __( 'Breedte', 'jellopoint-custom-blocks' ),
+				'label'      => __( 'Breedte (kolom)', 'jellopoint-custom-blocks' ),
 				'type'       => Controls_Manager::SLIDER,
 				'size_units' => [ '%', 'px' ],
 				'range'      => [
@@ -404,31 +405,9 @@ class Custom_Block extends Widget_Base {
 					],
 				],
 				'selectors'  => [
-					'{{WRAPPER}} .jp-block__media'     => 'flex: 0 0 {{SIZE}}{{UNIT}}; max-width: {{SIZE}}{{UNIT}};',
-					'{{WRAPPER}} .jp-block__media img' => 'width: 100%; height: auto;',
+					'{{WRAPPER}}' => '--jp-block-image-width: {{SIZE}}{{UNIT}};',
 				],
-			]
-		);
-
-		$this->add_responsive_control(
-			'image_max_width',
-			[
-				'label'      => __( 'Max-width', 'jellopoint-custom-blocks' ),
-				'type'       => Controls_Manager::SLIDER,
-				'size_units' => [ '%', 'px' ],
-				'range'      => [
-					'%'  => [
-						'min' => 10,
-						'max' => 100,
-					],
-					'px' => [
-						'min' => 50,
-						'max' => 1000,
-					],
-				],
-				'selectors'  => [
-					'{{WRAPPER}} .jp-block__media' => 'max-width: {{SIZE}}{{UNIT}};',
-				],
+				'description' => __( 'Bij links/rechts bepaalt dit de beeldkolom-breedte. Op mobiel wordt alles automatisch 100% breed.', 'jellopoint-custom-blocks' ),
 			]
 		);
 
@@ -848,29 +827,34 @@ class Custom_Block extends Widget_Base {
 
 		$wrapper_id = 'jp-block-' . $this->get_id();
 
-		$wrapper_style = '';
-		if ( $has_side_image ) {
-			// Flex layout met richting per positie.
-			$direction     = ( 'right' === $image_pos ) ? 'row-reverse' : 'row';
-			$wrapper_style = 'display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;flex-direction:' . $direction . ';';
-		}
+		echo '<div id="' . esc_attr( $wrapper_id ) . '" class="' . esc_attr( implode( ' ', $wrapper_classes ) ) . '">';
 
-		// Wrapper openen.
-		echo '<div id="' . esc_attr( $wrapper_id ) . '" class="' . esc_attr( implode( ' ', $wrapper_classes ) ) . '"';
-		if ( $wrapper_style ) {
-			echo ' style="' . esc_attr( $wrapper_style ) . '"';
-		}
-		echo '>';
-
-		// Mobiele override: bij side-image altijd stacken (afbeelding boven tekst).
+		// CSS voor side-layout via grid + CSS variabele.
 		if ( $has_side_image ) {
 			echo '<style>';
-			echo '@media (max-width: 767px){#' . esc_attr( $wrapper_id ) . '{flex-direction:column;}}';
+			// Desktop / tablet: grid met kolombreedten obv variabele.
+			echo '#' . esc_attr( $wrapper_id ) . '.jp-block--image-left,'
+				. '#' . esc_attr( $wrapper_id ) . '.jp-block--image-right'
+				. '{display:grid!important;grid-template-columns:var(--jp-block-image-width,40%) minmax(0,1fr);column-gap:1.5rem;align-items:flex-start;}';
+			echo '#' . esc_attr( $wrapper_id ) . ' .jp-block__media{width:100%;}';
+			echo '#' . esc_attr( $wrapper_id ) . ' .jp-block__media img{width:100%;height:auto;display:block;}';
+			// Voor "rechts" kolom de volgorde omdraaien.
+			echo '#' . esc_attr( $wrapper_id ) . '.jp-block--image-right .jp-block__media{order:2;}';
+			echo '#' . esc_attr( $wrapper_id ) . '.jp-block--image-right .jp-block__body{order:1;}';
+			// Mobiel: stacked, afbeelding altijd boven.
+			echo '@media (max-width:767px){'
+				. '#' . esc_attr( $wrapper_id ) . '.jp-block--image-left,'
+				. '#' . esc_attr( $wrapper_id ) . '.jp-block--image-right'
+				. '{display:block!important;}'
+				. '#' . esc_attr( $wrapper_id ) . ' .jp-block__media,'
+				. '#' . esc_attr( $wrapper_id ) . ' .jp-block__body'
+				. '{width:100%;}'
+				. '}';
 			echo '</style>';
 		}
 
 		if ( $has_side_image ) {
-			// LINKS / RECHTS LAYOUT – markup altijd: media dan body.
+			// SIDE LAYOUT: markup altijd media → body; CSS regelt positie.
 			if ( $image_html ) {
 				echo '<div class="jp-block__media">';
 				echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
