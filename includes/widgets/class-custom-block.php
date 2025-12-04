@@ -750,9 +750,14 @@ class Custom_Block extends Widget_Base {
 		if ( $show_image && has_post_thumbnail( $post_id ) ) {
 			$image_id = get_post_thumbnail_id( $post_id );
 			if ( $image_id ) {
-				$image_html = Group_Control_Image_Size::get_attachment_image_html( $settings, 'image_size', $image_id );
+				// Haal de gevraagde afbeeldingsgrootte op vanuit de widget settings.
+				$size = ! empty( $settings['image_size_size'] ) ? $settings['image_size_size'] : 'medium';
+
+				// Gebruik core WordPress helper – dit is super stabiel.
+				$image_html = wp_get_attachment_image( $image_id, $size );
 			}
 		}
+
 
 		// Button HTML.
 		$button_html = '';
