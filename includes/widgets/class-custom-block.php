@@ -51,15 +51,45 @@ class Custom_Block extends Widget_Base {
 			]
 		);
 
+		// Bron post type (standaard Posts + alle publieke CPT's).
+		$this->add_control(
+			'source_post_type',
+			[
+				'label'       => __( 'Post type', 'jellopoint-custom-blocks' ),
+				'type'        => Controls_Manager::SELECT,
+				'options'     => $this->get_source_post_type_options(),
+				'default'     => 'post',
+				'label_block' => true,
+				'description' => __( 'Kies het type content dat je wilt tonen. Standaard staat dit op Posts, maar je kunt ook een Custom Post Type kiezen.', 'jellopoint-custom-blocks' ),
+			]
+		);
+
+		// Alleen voor standaard Posts: categorie-filter om de post-lijst kort te houden.
+		$this->add_control(
+			'source_category',
+			[
+				'label'       => __( 'Categorie filter', 'jellopoint-custom-blocks' ),
+				'type'        => Controls_Manager::SELECT2,
+				'options'     => $this->get_category_options(),
+				'multiple'    => false,
+				'label_block' => true,
+				'default'     => 0,
+				'description' => __( 'Optioneel: toon alleen posts uit een bepaalde categorie in de dropdown hieronder.', 'jellopoint-custom-blocks' ),
+				'condition'   => [
+					'source_post_type' => 'post',
+				],
+			]
+		);
+
 		$this->add_control(
 			'post_id',
 			[
 				'label'       => __( 'Post', 'jellopoint-custom-blocks' ),
 				'type'        => Controls_Manager::SELECT2,
-				'options'     => $this->get_post_options_acf_cpts(),
+				'options'     => $this->get_post_options(),
 				'multiple'    => false,
 				'label_block' => true,
-				'description' => __( 'Kies welke post je in dit blok wilt tonen (uit ACF-compatibele custom post types).', 'jellopoint-custom-blocks' ),
+				'description' => __( 'Kies welke post je in dit blok wilt tonen. Tip: gebruik het categorie-filter (bij Posts) om de lijst kort te houden.', 'jellopoint-custom-blocks' ),
 			]
 		);
 
@@ -604,15 +634,18 @@ class Custom_Block extends Widget_Base {
 	}
 
 	/**
-	 * Lijst met posts uit ACF-gerelateerde custom post types,
-	 * waarbij bekende "systeem-CPT's" (zoals Elementor Templates) uitgesloten worden.
+	 * Beschikbare bron post types.
+	 *
+	 * Standaard tonen we "post" (Blog posts) + alle publieke CPT's die een UI hebben,
+	 * en we sluiten bekende systeem-posttypes uit (Elementor templates, etc.).
 	 *
 	 * @return array
 	 */
-	protected function get_post_options_acf_cpts() {
-		$options = [];
+	protected function get_source_post_type_options() {
+		$options = [
+			'post' => __( 'Posts (standaard)', 'jellopoint-custom-blocks' ),
+		];
 
-		// Eerst alle publieke, niet-builtin CPT's ophalen.
 		$post_types = get_post_types(
 			[
 				'public'   => true,
@@ -626,7 +659,6 @@ class Custom_Block extends Widget_Base {
 			return $options;
 		}
 
-		// Bekende "systeem" CPT's die we NIET willen tonen.
 		$exclude_slugs = [
 			'elementor_library',
 			'elementor_snippet',
@@ -635,55 +667,105 @@ class Custom_Block extends Widget_Base {
 			'wp_template_part',
 		];
 
-		// Als ACF aanwezig is, beperken tot ACF-compatibele post types.
-		if ( function_exists( 'acf_get_post_types' ) ) {
-			$acf_types = acf_get_post_types(
-				[
-					'exclude' => [ 'post', 'page', 'attachment' ],
-				]
-			);
-
-			if ( ! empty( $acf_types ) ) {
-				$post_types = array_intersect_key( $post_types, array_flip( $acf_types ) );
-			}
-		}
-
-		// Uitgesloten CPT's verwijderen.
 		foreach ( $exclude_slugs as $slug ) {
 			if ( isset( $post_types[ $slug ] ) ) {
 				unset( $post_types[ $slug ] );
 			}
 		}
 
-		if ( empty( $post_types ) ) {
+		// Als ACF aanwezig is, laat ACF post types gewoon staan; we beperken hier niet meer tot ACF.
+		foreach ( $post_types as $post_type => $pt_obj ) {
+			$label              = ! empty( $pt_obj->labels->singular_name ) ? $pt_obj->labels->singular_name : $post_type;
+			$options[ $post_type ] = $label;
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Categories dropdown options (alleen voor standaard Posts).
+	 *
+	 * @return array
+	 */
+	protected function get_category_options() {
+		$options = [
+			0 => __( 'Alle categorieën', 'jellopoint-custom-blocks' ),
+		];
+
+		$terms = get_terms(
+			[
+				'taxonomy'   => 'category',
+				'hide_empty' => false,
+			]
+		);
+
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
 			return $options;
 		}
 
-		foreach ( $post_types as $post_type => $pt_obj ) {
-			$args = [
-				'post_type'      => $post_type,
-				'post_status'    => 'publish',
-				'posts_per_page' => -1,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-				'fields'         => 'ids',
+		foreach ( $terms as $term ) {
+			$options[ (int) $term->term_id ] = $term->name;
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Lijst met posts voor de dropdown.
+	 *
+	 * - Werkt voor standaard Posts én voor publieke CPT's.
+	 * - Voor standaard Posts kan optioneel gefilterd worden op category (om de lijst kort te houden).
+	 *
+	 * @return array
+	 */
+	protected function get_post_options() {
+		$options = [];
+
+		// Probeer de huidige (reeds gekozen) instellingen te lezen zodat we de dropdown kunnen beperken.
+		$current_settings = method_exists( $this, 'get_settings' ) ? (array) $this->get_settings() : [];
+		$source_post_type = ! empty( $current_settings['source_post_type'] ) ? sanitize_key( $current_settings['source_post_type'] ) : 'post';
+		$source_category  = isset( $current_settings['source_category'] ) ? (int) $current_settings['source_category'] : 0;
+
+		// Validatie: alleen toestaan wat we aanbieden.
+		$allowed_types = $this->get_source_post_type_options();
+		if ( ! isset( $allowed_types[ $source_post_type ] ) ) {
+			$source_post_type = 'post';
+		}
+
+		$args = [
+			'post_type'      => $source_post_type,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'fields'         => 'ids',
+		];
+
+		// Alleen voor standaard Posts: filter op categorie als gekozen.
+		if ( 'post' === $source_post_type && $source_category > 0 ) {
+			$args['tax_query'] = [
+				[
+					'taxonomy' => 'category',
+					'field'    => 'term_id',
+					'terms'    => [ $source_category ],
+				],
 			];
+		}
 
-			$post_ids = get_posts( $args );
+		$post_ids = get_posts( $args );
 
-			if ( empty( $post_ids ) || is_wp_error( $post_ids ) ) {
-				continue;
+		if ( empty( $post_ids ) || is_wp_error( $post_ids ) ) {
+			return $options;
+		}
+
+		$label = isset( $allowed_types[ $source_post_type ] ) ? $allowed_types[ $source_post_type ] : $source_post_type;
+
+		foreach ( $post_ids as $post_id ) {
+			$title = get_the_title( $post_id );
+			if ( '' === $title ) {
+				$title = sprintf( __( '(geen titel) – ID %d', 'jellopoint-custom-blocks' ), $post_id );
 			}
-
-			$label = ! empty( $pt_obj->labels->singular_name ) ? $pt_obj->labels->singular_name : $post_type;
-
-			foreach ( $post_ids as $post_id ) {
-				$title = get_the_title( $post_id );
-				if ( '' === $title ) {
-					$title = sprintf( __( '(geen titel) – ID %d', 'jellopoint-custom-blocks' ), $post_id );
-				}
-				$options[ $post_id ] = sprintf( '%s – %s (ID %d)', $label, $title, $post_id );
-			}
+			$options[ $post_id ] = sprintf( '%s – %s (ID %d)', $label, $title, $post_id );
 		}
 
 		return $options;

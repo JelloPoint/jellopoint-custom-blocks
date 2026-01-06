@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       JelloPoint Custom Blocks
  * Description:       JelloPoint Elementor widget om specifieke Custom Posts (bijv. Standaard Teksten) als blok te tonen, volledig te stylen in Elementor.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Author:            JelloPoint
  * Text Domain:       jellopoint-custom-blocks
  * Domain Path:       /languages
